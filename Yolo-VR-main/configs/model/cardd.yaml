@@ -1,0 +1,11 @@
+name: "CarDD-DamageDetection"
+dir_name: "CarDD-DamageDetection"
+nc: 6
+classes: 
+  - dent
+  - scratch
+  - crack
+  - glass shatter
+  - lamp broken
+  - tire flat
+description: "Car Damage Detection - 4,000 images, 8,740 bboxes"

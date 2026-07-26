@@ -1,0 +1,9 @@
+name: "BrokenMotorcycles"
+dir_name: "BrokenMotorcycles"
+nc: 4
+classes:
+  - motorcycle
+  - motorcycle_accident
+  - people
+  - people_accident
+description: "Broken Motorcycles / Accident Detection - 370 images, 1,138 bboxes"

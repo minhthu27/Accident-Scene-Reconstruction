@@ -1,0 +1,35 @@
+# Custom Training Hyperparameters for Hand-collected Scene Data
+epochs: 150
+batch: 16
+imgsz: 640
+patience: 30
+optimizer: "AdamW"
+lr0: 0.001
+lrf: 0.01
+
+# Hand-collected datasets (e.g., blood, skid marks) are sensitive to extreme color/shape changes.
+# Therefore, we use milder augmentations compared to default YOLO.
+hsv_h: 0.015    # Subtle hue shifts
+hsv_s: 0.5      # Avoid over-saturating (blood might look like paint)
+hsv_v: 0.4      # Value shifts
+degrees: 10.0   # Slight rotation
+translate: 0.1
+scale: 0.5
+shear: 0.0      # Disable shear to preserve scale bar proportions
+perspective: 0.0
+flipud: 0.0
+fliplr: 0.5     # Left-right flip is OK
+mosaic: 1.0     # Mosaic is still good for context
+mixup: 0.0      # Disable mixup to prevent ghosting effects on critical evidence
+copy_paste: 0.0
+erasing: 0.1    # Light erasing
+
+# Environment
+workers: 4
+cache: false
+seed: 42
+deterministic: true
+plots: true
+save_period: 25
+val: true
+verbose: true

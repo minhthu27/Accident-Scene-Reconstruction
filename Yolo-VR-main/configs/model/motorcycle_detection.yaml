@@ -1,0 +1,11 @@
+name: "MotorcycleDetection"
+dir_name: "MotorcycleDetection"
+nc: 6
+classes:
+  - helmet
+  - motorcycle
+  - plate
+  - traffic-green
+  - traffic-red
+  - walk-lane
+description: "Motorcycle Detection - 6,617 images, 9,593 bboxes"

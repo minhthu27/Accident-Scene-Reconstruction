@@ -1,0 +1,7 @@
+name: "MotorcycleHelmet"
+dir_name: "MotorcycleHelmet"
+nc: 2
+classes:
+  - helmet
+  - no helmet
+description: "Helmet Detection - 1,268 images, 2,619 bboxes"

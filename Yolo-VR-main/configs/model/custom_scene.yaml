@@ -1,0 +1,11 @@
+name: "Custom-Accident-Scene"
+dir_name: "Custom-Accident-Scene"
+nc: 6
+classes: 
+  - person-acident
+  - motorcycle_fallen
+  - helmet
+  - ruler
+  - fallen_object
+  - blood
+description: "Custom Real-world Accident Scene Collection"

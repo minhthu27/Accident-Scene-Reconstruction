@@ -1,0 +1,11 @@
+venv/
+__pycache__/
+*.pyc
+build/
+dist/
+*.spec
+data-scene/
+data-scene-filtered/
+images_filtered/
+database.db
+point_cloud.ply

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accident Scene Viewer - Diagnostics</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a14;
+      color: #ddd;
+      font-family: 'Segoe UI', sans-serif;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    h1 { color: #7048e8; margin-bottom: 20px; }
+    h2 { color: #4a7c9e; margin-top: 20px; margin-bottom: 10px; }
+    .test { 
+      background: rgba(255,255,255,.05);
+      padding: 12px;
+      margin: 10px 0;
+      border-left: 3px solid #666;
+      border-radius: 4px;
+    }
+    .test.pass { border-left-color: #2d8c2d; background: rgba(45,140,45,.08); }
+    .test.fail { border-left-color: #c44; background: rgba(196,68,68,.08); }
+    .test.warn { border-left-color: #db8a00; background: rgba(219,138,0,.08); }
+    .status {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-weight: bold;
+      font-size: 0.9em;
+      margin-left: 10px;
+    }
+    .status.pass { background: #2d8c2d; color: #fff; }
+    .status.fail { background: #c44; color: #fff; }
+    .status.warn { background: #db8a00; color: #fff; }
+    .details {
+      font-size: 0.85em;
+      color: #aaa;
+      margin-top: 5px;
+      padding-left: 20px;
+    }
+    button {
+      background: #7048e8;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button:hover { background: #8058f0; }
+    code {
+      background: rgba(0,0,0,.3);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 Accident Scene Viewer - Diagnostics</h1>
+    <p>This page checks your viewer setup and helps troubleshoot issues.</p>
+
+    <h2>📋 System Check</h2>
+    <div id="results"></div>
+
+    <h2>⚙️ Quick Fixes</h2>
+    <div id="fixes"></div>
+
+    <h2>📖 Next Steps</h2>
+    <button onclick="window.location.href='viewer.html'">Open Viewer</button>
+    <button onclick="window.location.href='../README.md'">View README</button>
+  </div>
+
+  <script>
+    const results = document.getElementById('results');
+
+    async function runDiagnostics() {
+      const tests = [];
+
+      // Test 1: Three.js Local File
+      tests.push(await checkFile('lib/three.min.js', 'Three.js Library'));
+
+      // Test 2: OrbitControls Local File  
+      tests.push(await checkFile('lib/OrbitControls.js', 'OrbitControls'));
+
+      // Test 3: Scene File
+      tests.push(await checkFile('accident_scene.scene3d', 'Scene File'));
+
+      // Test 4: Browser Capabilities
+      tests.push(checkBrowserCapabilities());
+
+      // Test 5: CDN Fallback (if locals fail)
+      if (tests[0].status === 'fail' || tests[1].status === 'fail') {
+        tests.push(await checkCDN());
+      }
+
+      // Render results
+      tests.forEach(test => {
+        const div = document.createElement('div');
+        div.className = `test ${test.status}`;
+        div.innerHTML = `
+          <strong>${test.name}</strong>
+          <span class="status ${test.status}">${test.status.toUpperCase()}</span>
+          ${test.details ? `<div class="details">${test.details}</div>` : ''}
+        `;
+        results.appendChild(div);
+      });
+
+      // Generate fixes
+      generateFixes(tests);
+    }
+
+    async function checkFile(path, name) {
+      try {
+        const resp = await fetch(path, { method: 'HEAD' });
+        if (resp.ok) {
+          return {
+            name,
+            status: 'pass',
+            details: `✓ File found at <code>${path}</code>`
+          };
+        } else {
+          return {
+            name,
+            status: 'fail',
+            details: `✗ File not found: <code>${path}</code> (HTTP ${resp.status})`
+          };
+        }
+      } catch (e) {
+        return {
+          name,
+          status: 'fail',
+          details: `✗ Error checking file: ${e.message}`
+        };
+      }
+    }
+
+    function checkBrowserCapabilities() {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      
+      if (gl) {
+        return {
+          name: 'WebGL Support',
+          status: 'pass',
+          details: `✓ WebGL available • Vendor: ${gl.getParameter(gl.VENDOR)}`
+        };
+      } else {
+        return {
+          name: 'WebGL Support',
+          status: 'fail',
+          details: '✗ WebGL not supported in this browser'
+        };
+      }
+    }
+
+    async function checkCDN() {
+      try {
+        const resp = await fetch(
+          'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js',
+          { method: 'HEAD' }
+        );
+        if (resp.ok) {
+          return {
+            name: 'CDN Fallback',
+            status: 'pass',
+            details: '✓ CDN available - libraries will load from cloud if needed'
+          };
+        }
+      } catch (e) {
+        return {
+          name: 'CDN Fallback',
+          status: 'fail',
+          details: '✗ No internet or CDN unreachable'
+        };
+      }
+    }
+
+    function generateFixes(tests) {
+      const fixes = document.getElementById('fixes');
+      const failures = tests.filter(t => t.status !== 'pass');
+
+      if (failures.length === 0) {
+        const div = document.createElement('div');
+        div.className = 'test pass';
+        div.innerHTML = '<strong>✅ All systems operational!</strong><div class="details">Your viewer should work correctly. Open <code>viewer.html</code> to get started.</div>';
+        fixes.appendChild(div);
+        return;
+      }
+
+      failures.forEach(test => {
+        const div = document.createElement('div');
+        div.className = 'test fail';
+        
+        let solution = '';
+        if (test.name.includes('Three.js')) {
+          solution = 'Download three.min.js from <code>https://cdnjs.cloudflare.com</code> and place in <code>3D/lib/</code>';
+        } else if (test.name.includes('OrbitControls')) {
+          solution = 'Download OrbitControls.js from Three.js examples and place in <code>3D/lib/</code>';
+        } else if (test.name.includes('Scene File')) {
+          solution = 'Export your scene as <code>accident_scene.scene3d</code> and place in <code>3D/</code> folder';
+        } else if (test.name.includes('WebGL')) {
+          solution = 'Try a modern browser (Chrome, Firefox, Edge). WebGL is required for 3D rendering.';
+        }
+
+        div.innerHTML = `
+          <strong>⚠️ ${test.name}</strong>
+          <div class="details">${solution}</div>
+        `;
+        fixes.appendChild(div);
+      });
+    }
+
+    runDiagnostics();
+  </script>
+</body>
+</html>

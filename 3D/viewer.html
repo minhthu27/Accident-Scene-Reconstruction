@@ -1,0 +1,1699 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Accident Scene 3D Viewer</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden
+    }
+
+    body {
+      background: #06060f;
+      color: #dde;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif
+    }
+
+    /* ── TOP BAR ── */
+    #bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 48px;
+      background: rgba(8, 8, 20, .96);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(100, 120, 255, .12);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+      z-index: 100
+    }
+
+    #bar h1 {
+      font-size: 13px;
+      font-weight: 700;
+      background: linear-gradient(90deg, #7eb3ff, #b48bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      white-space: nowrap
+    }
+
+    #open-btn {
+      padding: 6px 16px;
+      background: linear-gradient(135deg, #3b5bdb, #7048e8);
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+      white-space: nowrap
+    }
+
+    #open-btn:hover {
+      box-shadow: 0 4px 18px rgba(112, 72, 232, .5);
+      transform: translateY(-1px)
+    }
+
+    #file-input {
+      display: none
+    }
+
+    #fname {
+      font-size: 11px;
+      color: #556;
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap
+    }
+
+    .bar-sep {
+      width: 1px;
+      height: 24px;
+      background: rgba(255, 255, 255, .06)
+    }
+
+    #fps {
+      font-size: 10px;
+      color: #445;
+      font-variant-numeric: tabular-nums;
+      min-width: 52px;
+      text-align: right
+    }
+
+    /* ── CANVAS ── */
+    #cv-wrap {
+      position: fixed;
+      top: 48px;
+      left: 0;
+      right: 280px;
+      bottom: 0
+    }
+
+    canvas {
+      width: 100% !important;
+      height: 100% !important;
+      display: block;
+      outline: none
+    }
+
+    /* ── SIDE PANEL ── */
+    #panel {
+      position: fixed;
+      top: 48px;
+      right: 0;
+      width: 280px;
+      bottom: 0;
+      background: rgba(6, 6, 15, .98);
+      border-left: 1px solid rgba(100, 120, 255, .08);
+      padding: 14px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 90
+    }
+
+    #panel::-webkit-scrollbar {
+      width: 4px
+    }
+
+    #panel::-webkit-scrollbar-thumb {
+      background: rgba(112, 72, 232, .3);
+      border-radius: 4px
+    }
+
+    .psec {
+      background: rgba(255, 255, 255, .025);
+      border: 1px solid rgba(255, 255, 255, .05);
+      border-radius: 10px;
+      padding: 12px 14px
+    }
+
+    .psec h3 {
+      font-size: 9.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: #7eb3ff;
+      margin-bottom: 8px
+    }
+
+    .srow {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 3px 0;
+      font-size: 11px;
+      border-bottom: 1px solid rgba(255, 255, 255, .03)
+    }
+
+    .srow:last-child {
+      border: none
+    }
+
+    .sl {
+      color: #667
+    }
+
+    .sv {
+      color: #ccd;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums
+    }
+
+    .sv.ok {
+      color: #4ade80
+    }
+
+    .sv.warn {
+      color: #fb923c
+    }
+
+    .csl {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 11px
+    }
+
+    .csl label {
+      color: #89a;
+      display: flex;
+      justify-content: space-between;
+      align-items: center
+    }
+
+    .csl label span {
+      color: #b8c;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums
+    }
+
+    .csl input[type=range] {
+      width: 100%;
+      accent-color: #7048e8;
+      cursor: pointer;
+      height: 4px;
+      -webkit-appearance: none;
+      background: rgba(255, 255, 255, .06);
+      border-radius: 4px;
+      outline: none
+    }
+
+    .csl input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #7048e8;
+      cursor: pointer;
+      box-shadow: 0 0 6px rgba(112, 72, 232, .4)
+    }
+
+    .trow {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: #789;
+      padding: 3px 0
+    }
+
+    .tog {
+      position: relative;
+      width: 34px;
+      height: 18px;
+      cursor: pointer;
+      flex-shrink: 0
+    }
+
+    .tog input {
+      opacity: 0;
+      width: 0;
+      height: 0
+    }
+
+    .ts {
+      position: absolute;
+      inset: 0;
+      background: #222235;
+      border-radius: 18px;
+      transition: .2s
+    }
+
+    .ts::before {
+      content: '';
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      left: 3px;
+      top: 3px;
+      background: #888;
+      border-radius: 50%;
+      transition: .2s
+    }
+
+    .tog input:checked+.ts {
+      background: #7048e8
+    }
+
+    .tog input:checked+.ts::before {
+      transform: translateX(16px);
+      background: #fff
+    }
+
+    #tgrid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px
+    }
+
+    #tgrid img {
+      width: 100%;
+      border-radius: 6px;
+      object-fit: cover;
+      aspect-ratio: 4/3;
+      border: 1px solid rgba(255, 255, 255, .05);
+      cursor: zoom-in;
+      transition: .18s
+    }
+
+    #tgrid img:hover {
+      border-color: #7048e8;
+      transform: scale(1.04);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, .4)
+    }
+
+    /* ── LOADING OVERLAY ── */
+    #overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(4, 4, 12, .96);
+      backdrop-filter: blur(8px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      z-index: 200
+    }
+
+    #overlay.gone {
+      display: none
+    }
+
+    .spin {
+      width: 44px;
+      height: 44px;
+      border: 3px solid rgba(112, 72, 232, .15);
+      border-top-color: #7048e8;
+      border-radius: 50%;
+      animation: sp .65s linear infinite
+    }
+
+    @keyframes sp {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+
+    #ltxt {
+      font-size: 13px;
+      color: #99a;
+      text-align: center;
+      max-width: 400px;
+      line-height: 1.6
+    }
+
+    #lbar-w {
+      width: 320px;
+      height: 5px;
+      background: rgba(255, 255, 255, .04);
+      border-radius: 9px;
+      overflow: hidden
+    }
+
+    #lbar {
+      height: 100%;
+      background: linear-gradient(90deg, #3b5bdb, #7048e8);
+      width: 0%;
+      transition: width .15s;
+      border-radius: 9px
+    }
+
+    /* ── DROP ZONE ── */
+    #drop {
+      position: fixed;
+      top: 48px;
+      left: 0;
+      right: 280px;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50
+    }
+
+    #drop.gone {
+      display: none
+    }
+
+    .dbox {
+      border: 2px dashed rgba(100, 120, 255, .18);
+      border-radius: 18px;
+      padding: 44px 56px;
+      text-align: center;
+      transition: .2s;
+      max-width: 440px
+    }
+
+    .dbox.drag {
+      border-color: #7048e8;
+      background: rgba(112, 72, 232, .06)
+    }
+
+    .dico {
+      font-size: 56px;
+      opacity: .2;
+      margin-bottom: 12px
+    }
+
+    .dtit {
+      font-size: 18px;
+      font-weight: 700;
+      color: #7eb3ff;
+      margin-bottom: 8px
+    }
+
+    .dsub {
+      font-size: 12px;
+      color: #446;
+      line-height: 2
+    }
+
+    code {
+      color: #a78bfa;
+      background: rgba(167, 139, 250, .08);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px
+    }
+
+    /* ── ERROR ── */
+    #err {
+      position: fixed;
+      top: 58px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(180, 40, 40, .12);
+      border: 1px solid rgba(220, 80, 80, .3);
+      color: #f99;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 12px;
+      z-index: 250;
+      white-space: pre-wrap;
+      max-width: 520px;
+      text-align: center;
+      backdrop-filter: blur(8px)
+    }
+
+    #err.gone {
+      display: none
+    }
+
+    /* ── HINTS ── */
+    #hint {
+      position: fixed;
+      bottom: 12px;
+      left: 12px;
+      font-size: 10.5px;
+      color: #2a2a40;
+      line-height: 2;
+      pointer-events: none;
+      letter-spacing: .2px
+    }
+
+    #hint.gone {
+      display: none
+    }
+
+    /* ── LIGHTBOX ── */
+    #lb {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 300;
+      cursor: zoom-out;
+      backdrop-filter: blur(6px)
+    }
+
+    #lb.gone {
+      display: none
+    }
+
+    #lb img {
+      max-width: 92%;
+      max-height: 92%;
+      border-radius: 8px;
+      box-shadow: 0 0 50px rgba(0, 0, 0, .6)
+    }
+
+    /* ── RESPONSIVE ── */
+    @media(max-width:800px) {
+      #cv-wrap {
+        right: 0
+      }
+
+      #panel {
+        display: none
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="bar">
+    <h1>🔬 Accident Scene 3D Viewer</h1>
+    <button id="open-btn" onclick="document.getElementById('file-input').click()">📂 Mở file .scene3d</button>
+    <input type="file" id="file-input" accept=".scene3d,.ply">
+    <span id="fname">Chưa mở file — kéo thả hoặc nhấn nút bên trái</span>
+    <div class="bar-sep"></div>
+    <span id="fps">-- FPS</span>
+  </div>
+
+  <div id="cv-wrap"><canvas id="gl"></canvas></div>
+
+  <div id="panel">
+    <div class="psec">
+      <h3>📊 Scene</h3>
+      <div id="si">
+        <div class="srow"><span class="sl">Trạng thái</span><span class="sv warn">Chưa tải</span></div>
+      </div>
+    </div>
+    <div class="psec">
+      <h3>🎛 Hiển thị</h3>
+      <div class="csl">
+        <label>Cỡ điểm <span id="pv">3.5</span></label>
+        <input type="range" id="ps" min="0.3" max="12" step="0.1" value="3.5">
+      </div>
+      <div class="csl" style="margin-top:8px">
+        <label>Opacity <span id="ov">100</span>%</label>
+        <input type="range" id="op" min="5" max="100" step="1" value="100">
+      </div>
+      <div class="csl" style="margin-top:8px">
+        <label>Tốc độ xoay <span id="rv">0.0</span>×</label>
+        <input type="range" id="rs" min="0" max="6" step="0.1" value="0">
+      </div>
+      <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px">
+        <div class="trow"><span>Tự xoay</span>
+          <label class="tog"><input type="checkbox" id="ar"><span class="ts"></span></label>
+        </div>
+        <div class="trow"><span>Trục XYZ</span>
+          <label class="tog"><input type="checkbox" id="ax" checked><span class="ts"></span></label>
+        </div>
+        <div class="trow"><span>Grid nền</span>
+          <label class="tog"><input type="checkbox" id="gd" checked><span class="ts"></span></label>
+        </div>
+        <div class="trow"><span>Camera dots</span>
+          <label class="tog"><input type="checkbox" id="cv2"><span class="ts"></span></label>
+        </div>
+      </div>
+    </div>
+    <div class="psec">
+      <h3>📷 COLMAP</h3>
+      <div id="ci">
+        <div class="srow"><span class="sl">—</span><span class="sv">—</span></div>
+      </div>
+    </div>
+    <div class="psec" id="det-sec" style="display:none">
+      <h3>🔍 Detections</h3>
+      <div id="di"></div>
+    </div>
+    <div class="psec" id="ts" style="display:none">
+      <h3>🖼 Ảnh tham chiếu</h3>
+      <div id="tgrid"></div>
+    </div>
+    <div class="psec">
+      <h3>⌨ Phím tắt</h3>
+      <div style="font-size:10.5px;color:#446;line-height:2.2">
+        <b style="color:#778">R</b> Reset &nbsp;
+        <b style="color:#778">F</b> Fit vừa màn &nbsp;
+        <b style="color:#778">Space</b> Xoay<br>
+        <b style="color:#778">G</b> Grid &nbsp;
+        <b style="color:#778">+/-</b> Cỡ điểm<br>
+        🖱 Trái: Xoay · Phải: Pan · Scroll: Zoom
+      </div>
+    </div>
+  </div>
+
+  <div id="drop">
+    <div class="dbox" id="dbox">
+      <div class="dico">🏗️</div>
+      <div class="dtit">Kéo thả file <code>.scene3d</code> vào đây</div>
+      <div class="dsub">
+        hoặc nhấn <b style="color:#7eb3ff">📂 Mở file</b> ở trên<br><br>
+        File nằm tại:<br>
+        <code>3D/accident_scene.scene3d</code><br><br>
+        Hỗ trợ: <code>.scene3d</code> &nbsp; <code>.ply</code>
+      </div>
+    </div>
+  </div>
+
+  <div id="overlay">
+    <div class="spin"></div>
+    <div id="ltxt">Đang khởi tạo Three.js...</div>
+    <div id="lbar-w">
+      <div id="lbar"></div>
+    </div>
+  </div>
+
+  <div id="err" class="gone"></div>
+
+  <div id="hint" class="gone">
+    🖱 Trái: Xoay &nbsp;|&nbsp; Phải: Pan &nbsp;|&nbsp; Cuộn: Zoom &nbsp;|&nbsp; R: Reset &nbsp;|&nbsp; F: Fit
+    &nbsp;|&nbsp; +/-: Cỡ điểm
+  </div>
+
+  <div id="lb" class="gone" onclick="this.classList.add('gone')">
+    <img id="lbimg" src="" alt="">
+  </div>
+
+  <!-- Three.js from local lib with CDN fallback -->
+  <script src="lib/three.min.js" onerror="loadThreeFromCDN()"></script>
+  <script src="lib/OrbitControls.js" onerror="loadOrbitFromCDN()"></script>
+
+  <script>
+    // Fallback CDN loaders
+    function loadThreeFromCDN() {
+      console.warn('Local three.min.js failed, loading from CDN...');
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+      script.onerror = () => {
+        document.getElementById('ltxt').textContent = '❌ Cannot load Three.js from local or CDN!';
+        document.getElementById('lbar').style.background = '#c00';
+      };
+      document.head.appendChild(script);
+    }
+
+    function loadOrbitFromCDN() {
+      console.warn('Local OrbitControls.js failed, loading from CDN...');
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/three@r128/examples/js/controls/OrbitControls.js';
+      script.onerror = () => {
+        document.getElementById('ltxt').textContent = '❌ Cannot load OrbitControls from local or CDN!';
+        document.getElementById('lbar').style.background = '#c00';
+      };
+      document.head.appendChild(script);
+    }
+  </script>
+
+  <script>
+    'use strict';
+
+    // ═════════════════════════════════════════════════
+    // File format constants (match reconstruct_3d.py)
+    // ═════════════════════════════════════════════════
+    const MAGIC_BYTES = [0x41, 0x53, 0x52, 0x33]; // "ASR3"
+    const TAG_SPLT = [0x53, 0x50, 0x4C, 0x54]; // "SPLT"
+    const TAG_CAMR = [0x43, 0x41, 0x4D, 0x52]; // "CAMR"
+    const TAG_DETC = [0x44, 0x45, 0x54, 0x43]; // "DETC"
+    const TAG_THMB = [0x54, 0x48, 0x4D, 0x42]; // "THMB"
+    const TAG_ENDF = [0x45, 0x4E, 0x44, 0x46]; // "ENDF"
+
+    const VERTEX_STRIDE = 48;
+
+    // ━━━ Load ALL points for maximum quality ━━━
+    const MAX_DISPLAY = 1_500_000;
+
+    // ═════════════════════════════════════════════════
+    // Three.js globals
+    // ═════════════════════════════════════════════════
+    let renderer, scene, camera, controls, axesHelper, gridHelper;
+    let pointsMesh = null, camDots = null;
+    let autoRotate = false, rotateSpeed = 0;
+    let fpsFrames = 0, fpsLast = performance.now();
+    let currentPointSize = 3.5;
+    let splatMaterial = null;  // custom gaussian splat shader material
+
+    // ═════════════════════════════════════════════════
+    // Custom Gaussian Splatting Shaders
+    // ═════════════════════════════════════════════════
+    const SPLAT_VERTEX_SHADER = `
+  attribute float aScale;
+  attribute float aOpacity;
+  varying vec3 vColor;
+  varying float vOpacity;
+  uniform float uSizeMultiplier;
+  uniform float uPixelRatio;
+
+  void main() {
+    vColor = color;
+    vOpacity = aOpacity;
+
+    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+    float dist = -mvPosition.z;
+
+    // Tăng giới hạn scale để các splat nền không bị teo nhỏ
+    float clampedScale = min(aScale, 1.5);
+    float screenSize = clampedScale * uSizeMultiplier * uPixelRatio / dist;
+    gl_PointSize = clamp(screenSize, 1.0, 64.0);
+
+    gl_Position = projectionMatrix * mvPosition;
+  }
+`;
+
+    const SPLAT_FRAGMENT_SHADER = `
+  varying vec3 vColor;
+  varying float vOpacity;
+
+  void main() {
+    if (vOpacity < 0.05) discard;
+
+    vec2 cxy = 2.0 * gl_PointCoord - 1.0;
+    float r2 = dot(cxy, cxy);
+    if (r2 > 1.0) discard;
+
+    // Khi dùng point cloud không sort (depthWrite = true), vẽ bán trong suốt ở viền
+    // sẽ gây ra lỗi viền đen (halos) đè lên vật phía sau.
+    // Dùng solid color (alpha=1.0) kết hợp đánh bóng nhẹ ở viền (sphere shading) 
+    // sẽ cho bề mặt siêu mượt, sạch sẽ như sáp khối.
+    float centerLight = 1.0 - (r2 * 0.2);
+    
+    gl_FragColor = vec4(vColor * centerLight, 1.0);
+  }
+`;
+
+    // ═════════════════════════════════════════════════
+    // Eye-Dome Lighting (EDL) Post-Processing
+    // Industry standard for point cloud visualization
+    // ═════════════════════════════════════════════════
+    const EDL_VERTEX_SHADER = `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+    const EDL_FRAGMENT_SHADER = `
+  varying vec2 vUv;
+  uniform sampler2D tColor;
+  uniform sampler2D tDepth;
+  uniform vec2 uScreenSize;
+  uniform float uEdlStrength;
+  uniform float uRadius;
+  uniform float uNear;
+  uniform float uFar;
+
+  float linearizeDepth(float d) {
+    return uNear * uFar / (uFar - d * (uFar - uNear));
+  }
+
+  void main() {
+    vec2 uv = vUv;
+    vec4 color = texture2D(tColor, uv);
+    float depth = texture2D(tDepth, uv).r;
+
+    // Background pixels
+    if (depth >= 0.9999) {
+      gl_FragColor = vec4(0.024, 0.024, 0.059, 1.0);
+      return;
+    }
+
+    float ld = linearizeDepth(depth);
+    float logD = log2(max(ld, 0.001));
+    vec2 px = uRadius / uScreenSize;
+
+    // Sample 4 cardinal neighbors
+    float response = 0.0;
+    float nd;
+
+    nd = texture2D(tDepth, uv + vec2(px.x, 0.0)).r;
+    if (nd < 0.9999) response += max(0.0, logD - log2(linearizeDepth(nd)));
+    else response += max(0.0, logD * 0.3);
+
+    nd = texture2D(tDepth, uv + vec2(-px.x, 0.0)).r;
+    if (nd < 0.9999) response += max(0.0, logD - log2(linearizeDepth(nd)));
+    else response += max(0.0, logD * 0.3);
+
+    nd = texture2D(tDepth, uv + vec2(0.0, px.y)).r;
+    if (nd < 0.9999) response += max(0.0, logD - log2(linearizeDepth(nd)));
+    else response += max(0.0, logD * 0.3);
+
+    nd = texture2D(tDepth, uv + vec2(0.0, -px.y)).r;
+    if (nd < 0.9999) response += max(0.0, logD - log2(linearizeDepth(nd)));
+    else response += max(0.0, logD * 0.3);
+
+    // Giảm multiplier và tăng clamp floor để bóng không bị đục đen thui
+    float shade = exp(-response * uEdlStrength * 25.0);
+    shade = clamp(shade, 0.5, 1.0);
+
+    gl_FragColor = vec4(color.rgb * shade, 1.0);
+  }
+`;
+
+    let renderTarget = null;
+    let edlMaterial = null;
+    let postScene = null;
+    let postCamera = null;
+
+    function initThree() {
+      const canvas = document.getElementById('gl');
+      renderer = new THREE.WebGLRenderer({
+        canvas,
+        antialias: false,      // OFF — we handle quality via EDL post-processing
+        alpha: false,
+        powerPreference: 'high-performance'
+      });
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.setClearColor(0x06060f, 1);
+      renderer.sortObjects = false;
+
+      scene = new THREE.Scene();
+
+      camera = new THREE.PerspectiveCamera(55, 1, 0.01, 5000);
+      camera.position.set(0, 8, 25);
+
+      controls = new THREE.OrbitControls(camera, canvas);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.07;
+      controls.rotateSpeed = 0.5;
+      controls.zoomSpeed = 1.4;
+      controls.panSpeed = 0.8;
+      controls.screenSpacePanning = true;
+      controls.minDistance = 0.5;
+      controls.maxDistance = 500;
+
+      axesHelper = new THREE.AxesHelper(3);
+      axesHelper.material.transparent = true;
+      axesHelper.material.opacity = 0.4;
+      scene.add(axesHelper);
+
+      gridHelper = new THREE.GridHelper(40, 40, 0x151530, 0x0e0e22);
+      gridHelper.material.transparent = true;
+      gridHelper.material.opacity = 0.35;
+      scene.add(gridHelper);
+
+      // ── EDL Render Target (with depth texture)
+      const wrap = document.getElementById('cv-wrap');
+      const w = wrap.clientWidth || 800;
+      const h = wrap.clientHeight || 600;
+
+      const depthTexture = new THREE.DepthTexture();
+      depthTexture.type = THREE.UnsignedIntType;
+
+      const dpr = window.devicePixelRatio || 1;
+      renderTarget = new THREE.WebGLRenderTarget(Math.floor(w * dpr), Math.floor(h * dpr), {
+        minFilter: THREE.NearestFilter,
+        magFilter: THREE.NearestFilter,
+        depthTexture: depthTexture,
+        depthBuffer: true,
+      });
+
+      // ── EDL Post-Processing
+      edlMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+          tColor: { value: renderTarget.texture },
+          tDepth: { value: renderTarget.depthTexture },
+          uScreenSize: { value: new THREE.Vector2(w * dpr, h * dpr) },
+          uEdlStrength: { value: 1.0 },
+          uRadius: { value: 1.1 },
+          uNear: { value: camera.near },
+          uFar: { value: camera.far },
+        },
+        vertexShader: EDL_VERTEX_SHADER,
+        fragmentShader: EDL_FRAGMENT_SHADER,
+        depthTest: false,
+        depthWrite: false,
+      });
+
+      postScene = new THREE.Scene();
+      postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+      const postQuad = new THREE.Mesh(
+        new THREE.PlaneBufferGeometry(2, 2),
+        edlMaterial
+      );
+      postScene.add(postQuad);
+
+      window.addEventListener('resize', onResize);
+      onResize();
+
+      requestAnimationFrame(function loop(now) {
+        requestAnimationFrame(loop);
+
+        // FPS counter
+        fpsFrames++;
+        if (now - fpsLast >= 1000) {
+          document.getElementById('fps').textContent = fpsFrames + ' FPS';
+          fpsFrames = 0;
+          fpsLast = now;
+        }
+
+        if (autoRotate && pointsMesh) {
+          pointsMesh.rotation.y += 0.002 * rotateSpeed;
+        }
+
+        controls.update();
+
+        // Pass 1: Render scene to render target (with depth)
+        renderer.setRenderTarget(renderTarget);
+        renderer.render(scene, camera);
+
+        // Pass 2: EDL post-processing to screen
+        edlMaterial.uniforms.uNear.value = camera.near;
+        edlMaterial.uniforms.uFar.value = camera.far;
+        renderer.setRenderTarget(null);
+        renderer.render(postScene, postCamera);
+      });
+    }
+
+    function onResize() {
+      const wrap = document.getElementById('cv-wrap');
+      const w = wrap.clientWidth;
+      const h = wrap.clientHeight;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+
+      const dpr = window.devicePixelRatio || 1;
+      if (renderTarget) {
+        renderTarget.setSize(Math.floor(w * dpr), Math.floor(h * dpr));
+      }
+      if (edlMaterial) {
+        edlMaterial.uniforms.uScreenSize.value.set(w * dpr, h * dpr);
+      }
+      if (splatMaterial) {
+        splatMaterial.uniforms.uPixelRatio.value = window.devicePixelRatio;
+      }
+    }
+
+    // ═════════════════════════════════════════════════
+    // Binary reader
+    // ═════════════════════════════════════════════════
+    class BinReader {
+      constructor(arrayBuffer) {
+        this.buf = arrayBuffer;
+        this.view = new DataView(arrayBuffer);
+        this.pos = 0;
+      }
+      u8() { return this.view.getUint8(this.pos++); }
+      u16() { const v = this.view.getUint16(this.pos, true); this.pos += 2; return v; }
+      u32() { const v = this.view.getUint32(this.pos, true); this.pos += 4; return v; }
+      u64() {
+        const lo = this.view.getUint32(this.pos, true);
+        const hi = this.view.getUint32(this.pos + 4, true);
+        this.pos += 8;
+        return hi * 4294967296 + lo;
+      }
+      f32() { const v = this.view.getFloat32(this.pos, true); this.pos += 4; return v; }
+      bytes(n) {
+        const slice = new Uint8Array(this.buf, this.pos, n).slice();
+        this.pos += n;
+        return slice;
+      }
+      str(n) {
+        const bytes = new Uint8Array(this.buf, this.pos, n);
+        this.pos += n;
+        return new TextDecoder('utf-8').decode(bytes);
+      }
+      skip(n) { this.pos += n; }
+      peekTag(tag) {
+        if (this.pos + 4 > this.view.byteLength) return false;
+        for (let i = 0; i < 4; i++) {
+          if (this.view.getUint8(this.pos + i) !== tag[i]) return false;
+        }
+        return true;
+      }
+      skipTag() { this.pos += 4; }
+      remaining() { return this.view.byteLength - this.pos; }
+    }
+
+    // ═════════════════════════════════════════════════
+    // Parse .scene3d
+    // ═════════════════════════════════════════════════
+    async function parseScene3D(arrayBuffer) {
+      progress(5, 'Kiểm tra header...');
+      await tick();
+
+      const r = new BinReader(arrayBuffer);
+
+      // ── Magic "ASR3"
+      for (let i = 0; i < 4; i++) {
+        if (r.u8() !== MAGIC_BYTES[i]) {
+          throw new Error(
+            'Không phải file .scene3d hợp lệ!\n' +
+            'Hãy chọn file: accident_scene.scene3d'
+          );
+        }
+      }
+
+      // ── Version (uint32)
+      const version = r.u32();
+      progress(8, `Version ${version} — đọc metadata...`);
+      await tick();
+
+      // ── Metadata JSON (length = uint64)
+      const metaLen = r.u64();
+      if (metaLen > 50_000_000) throw new Error(`Metadata quá lớn: ${metaLen} bytes`);
+      const metaStr = r.str(metaLen);
+      let meta;
+      try { meta = JSON.parse(metaStr); }
+      catch (e) { throw new Error('Lỗi parse metadata JSON: ' + e.message); }
+
+      progress(12, 'Metadata OK. Đọc sections...');
+      await tick();
+
+      let result = { meta, splats: null, camData: null, detections: [], thumbs: [] };
+
+      // ── Sections
+      while (r.remaining() >= 4) {
+        if (r.peekTag(TAG_ENDF)) { r.skipTag(); break; }
+
+        // ── SPLATS
+        if (r.peekTag(TAG_SPLT)) {
+          r.skipTag();
+          const nTotal = r.u32();  // uint32: vertex count
+          const dataLen = r.u64();  // uint64: byte length of splat data
+
+          // Subsample for display
+          const step = Math.max(1, Math.ceil(nTotal / MAX_DISPLAY));
+          const nKeep = Math.ceil(nTotal / step);
+          progress(15, `Splats: ${nTotal.toLocaleString()} → hiển thị ${nKeep.toLocaleString()}${step > 1 ? ` (1/${step})` : ' (full)'}`);
+          await tick();
+
+          // Read all vertex bytes
+          const rawBytes = r.bytes(dataLen);
+          const dv = new DataView(rawBytes.buffer, rawBytes.byteOffset, rawBytes.byteLength);
+
+          progress(30, 'Xây dựng point cloud...');
+          await tick();
+
+          const positions = new Float32Array(nKeep * 3);
+          const colors = new Float32Array(nKeep * 3);
+          const scales = new Float32Array(nKeep);
+          const opacities = new Float32Array(nKeep);
+          let ki = 0;
+
+          for (let i = 0; i < nTotal && ki < nKeep; i += step) {
+            const base = i * VERTEX_STRIDE;
+            if (base + VERTEX_STRIDE > rawBytes.byteLength) break;
+
+            // position (float3 @ offset 0)
+            const x = dv.getFloat32(base + 0, true);
+            const y = dv.getFloat32(base + 4, true);
+            const z = dv.getFloat32(base + 8, true);
+
+            // Skip NaN/Inf positions
+            if (!isFinite(x) || !isFinite(y) || !isFinite(z)) { continue; }
+
+            positions[ki * 3] = x;
+            positions[ki * 3 + 1] = y;
+            positions[ki * 3 + 2] = z;
+
+            // RGBA (uint8×4 @ offset 40)
+            colors[ki * 3] = dv.getUint8(base + 40) / 255;
+            colors[ki * 3 + 1] = dv.getUint8(base + 41) / 255;
+            colors[ki * 3 + 2] = dv.getUint8(base + 42) / 255;
+
+            // Scale (float3 @ offset 28, log-space) → geometric mean
+            const s0 = dv.getFloat32(base + 28, true);
+            const s1 = dv.getFloat32(base + 32, true);
+            const s2 = dv.getFloat32(base + 36, true);
+            const avgLogScale = (s0 + s1 + s2) / 3.0;
+            scales[ki] = Math.min(Math.exp(avgLogScale), 0.5);  // clamp max scale
+
+            // Opacity (float @ offset 44, already sigmoid-applied)
+            const op = dv.getFloat32(base + 44, true);
+            opacities[ki] = op;
+
+            // Skip very transparent gaussians that just add noise
+            if (op < 0.05) { continue; }
+
+            ki++;
+
+            if (ki % 80000 === 0) {
+              const pct = 30 + Math.floor(ki / nKeep * 40);
+              progress(pct, `Xử lý: ${ki.toLocaleString()} / ${nKeep.toLocaleString()}`);
+              await tick();
+            }
+          }
+
+          // Trim arrays if we skipped NaN vertices
+          if (ki < nKeep) {
+            result.splats = {
+              positions: positions.slice(0, ki * 3),
+              colors: colors.slice(0, ki * 3),
+              scales: scales.slice(0, ki),
+              opacities: opacities.slice(0, ki),
+              nKeep: ki, nTotal, step
+            };
+          } else {
+            result.splats = { positions, colors, scales, opacities, nKeep, nTotal, step };
+          }
+
+          progress(72, `Splat data OK! (${result.splats.nKeep.toLocaleString()} điểm)`);
+          await tick();
+        }
+
+        // ── CAMERAS
+        else if (r.peekTag(TAG_CAMR)) {
+          r.skipTag();
+          progress(75, 'Đọc camera poses...');
+          await tick();
+          const len = r.u64();  // uint64
+          const str = r.str(len);
+          try { result.camData = JSON.parse(str); }
+          catch (e) { console.warn('Camera JSON parse failed:', e); }
+        }
+
+        // ── DETECTIONS
+        else if (r.peekTag(TAG_DETC)) {
+          r.skipTag();
+          const len = r.u64();  // uint64
+          const str = r.str(len);
+          try { result.detections = JSON.parse(str); }
+          catch (e) { console.warn('Detections parse failed:', e); }
+        }
+
+        // ── THUMBNAILS
+        else if (r.peekTag(TAG_THMB)) {
+          r.skipTag();
+          progress(82, 'Đọc thumbnails...');
+          await tick();
+          const n = r.u32();  // uint32
+          for (let i = 0; i < n; i++) {
+            const nameLen = r.u16();   // uint16
+            const name = r.str(nameLen);
+            const dataLen = r.u32();   // uint32
+            const data = r.bytes(dataLen);
+            result.thumbs.push({ name, data });
+          }
+        }
+
+        // ── Unknown → stop
+        else {
+          const tag = String.fromCharCode(r.u8(), r.u8(), r.u8(), r.u8());
+          console.warn('Unknown section tag:', tag, 'at offset', r.pos - 4);
+          break;
+        }
+      }
+
+      return result;
+    }
+
+    // ═════════════════════════════════════════════════
+    // Build Three.js scene
+    // ═════════════════════════════════════════════════
+    async function buildScene(parsed) {
+      const { meta, splats, camData, detections, thumbs } = parsed;
+      const sc = meta.scene || {};
+
+      // ── Point cloud
+      progress(88, 'Tạo point cloud 3D...');
+      await tick();
+
+      if (splats && splats.nKeep > 0) {
+        if (pointsMesh) {
+          scene.remove(pointsMesh);
+          pointsMesh.geometry.dispose();
+          pointsMesh.material.dispose();
+        }
+
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(splats.positions, 3));
+        geo.setAttribute('color', new THREE.BufferAttribute(splats.colors, 3));
+        geo.setAttribute('aScale', new THREE.BufferAttribute(splats.scales, 1));
+        geo.setAttribute('aOpacity', new THREE.BufferAttribute(splats.opacities, 1));
+
+        // Custom Gaussian Splatting shader — solid crisp shading
+        splatMaterial = new THREE.ShaderMaterial({
+          uniforms: {
+            uSizeMultiplier: { value: 1000.0 * currentPointSize },
+            uPixelRatio: { value: window.devicePixelRatio },
+          },
+          vertexShader: SPLAT_VERTEX_SHADER,
+          fragmentShader: SPLAT_FRAGMENT_SHADER,
+          vertexColors: true,
+          transparent: true,
+          depthWrite: true,    // MUST be true for EDL depth buffer
+          depthTest: true,
+          blending: THREE.NormalBlending,
+        });
+
+        pointsMesh = new THREE.Points(geo, splatMaterial);
+        scene.add(pointsMesh);
+
+        // ── Fit camera to data
+        geo.computeBoundingBox();
+        const bbox = geo.boundingBox;
+        const center = new THREE.Vector3();
+        const size = new THREE.Vector3();
+        bbox.getCenter(center);
+        bbox.getSize(size);
+        const maxDim = Math.max(size.x, size.y, size.z);
+
+        // Use metadata center/extent if available, else computed
+        const scCenter = sc.center || [center.x, center.y, center.z];
+        const scExtent = sc.extent || [size.x, size.y, size.z];
+        const md = Math.max(...scExtent);
+
+        controls.target.set(scCenter[0], scCenter[1], scCenter[2]);
+        camera.position.set(
+          scCenter[0] + md * 0.3,
+          scCenter[1] + md * 0.4,
+          scCenter[2] + md * 0.9
+        );
+        camera.near = Math.max(0.005, md * 0.001);
+        camera.far = md * 30;
+        camera.updateProjectionMatrix();
+        controls.update();
+
+        // Adjust grid
+        gridHelper.scale.setScalar(md / 30);
+        gridHelper.position.y = bbox.min.y - 0.5;
+
+        // Adjust axes
+        axesHelper.scale.setScalar(md * 0.06);
+        axesHelper.position.set(bbox.min.x - md * 0.05, bbox.min.y - 0.5, bbox.max.z + md * 0.05);
+
+        // Update stats
+        document.getElementById('si').innerHTML = `
+      <div class="srow"><span class="sl">Tổng Gaussians</span><span class="sv">${splats.nTotal.toLocaleString()}</span></div>
+      <div class="srow"><span class="sl">Đang hiển thị</span><span class="sv ok">${splats.nKeep.toLocaleString()}</span></div>
+      <div class="srow"><span class="sl">Tỷ lệ hiển thị</span><span class="sv">${(splats.nKeep / splats.nTotal * 100).toFixed(1)}%</span></div>
+      <div class="srow"><span class="sl">Tạo lúc</span><span class="sv">${(meta.created || '').slice(0, 19).replace('T', ' ')}</span></div>
+      <div class="srow"><span class="sl">Extent</span><span class="sv">${(scExtent).map(v => v.toFixed(1)).join(' × ')}</span></div>
+      ${meta.detection_summary ? `<div class="srow"><span class="sl">Detections</span><span class="sv">${meta.detection_summary.total_detections || 0}</span></div>` : ''}
+    `;
+      }
+
+      // ── Camera positions (blue dots)
+      progress(92, 'Vẽ camera positions...');
+      await tick();
+
+      if (camData && camData.images && camData.images.length > 0) {
+        if (camDots) { scene.remove(camDots); }
+        camDots = new THREE.Group();
+
+        const ballGeo = new THREE.SphereGeometry(0.06, 6, 6);
+        const ballMat = new THREE.MeshBasicMaterial({ color: 0x00bbff, transparent: true, opacity: 0.7 });
+
+        camData.images.slice(0, 200).forEach(img => {
+          const [qw, qx, qy, qz] = img.rotation || [1, 0, 0, 0];
+          const [tx, ty, tz] = img.translation || [0, 0, 0];
+
+          // Camera world position: C = -R^T * t
+          const q = new THREE.Quaternion(qx, qy, qz, qw);
+          const Rmat = new THREE.Matrix4().makeRotationFromQuaternion(q);
+          const Rt = Rmat.clone().transpose();
+          const t = new THREE.Vector3(tx, ty, tz);
+          const C = t.clone().negate().applyMatrix4(Rt);
+
+          const dot = new THREE.Mesh(ballGeo, ballMat);
+          dot.position.copy(C);
+          camDots.add(dot);
+        });
+
+        scene.add(camDots);
+        camDots.visible = false;  // hidden by default
+
+        document.getElementById('ci').innerHTML = `
+      <div class="srow"><span class="sl">Số ảnh</span><span class="sv ok">${camData.images.length}</span></div>
+      <div class="srow"><span class="sl">Points 3D</span><span class="sv">${(meta.colmap?.num_points3d || 0).toLocaleString()}</span></div>
+      <div class="srow"><span class="sl">Cameras</span><span class="sv">${(camData.cameras || []).length}</span></div>
+    `;
+      }
+
+      // ── Detections
+      if (detections && detections.length > 0) {
+        document.getElementById('det-sec').style.display = '';
+        let html = `<div class="srow"><span class="sl">Tổng</span><span class="sv ok">${detections.length}</span></div>`;
+        const classCounts = {};
+        detections.forEach(d => {
+          (d.detections || []).forEach(det => {
+            classCounts[det.class_name] = (classCounts[det.class_name] || 0) + 1;
+          });
+        });
+        Object.entries(classCounts).sort((a, b) => b[1] - a[1]).slice(0, 8).forEach(([cls, cnt]) => {
+          html += `<div class="srow"><span class="sl">${cls}</span><span class="sv">${cnt}</span></div>`;
+        });
+        document.getElementById('di').innerHTML = html;
+      }
+
+      // ── Thumbnails
+      if (thumbs.length > 0) {
+        document.getElementById('ts').style.display = '';
+        const grid = document.getElementById('tgrid');
+        grid.innerHTML = '';
+        thumbs.forEach((t, idx) => {
+          try {
+            const blob = new Blob([t.data], { type: 'image/jpeg' });
+            const url = URL.createObjectURL(blob);
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = t.name || `Image ${idx}`;
+            img.title = t.name || `Thumbnail ${idx}`;
+            img.loading = 'lazy';
+            img.onerror = () => {
+              img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="150"%3E%3Crect fill="%23333" width="200" height="150"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999" font-size="14"%3EImage Error%3C/text%3E%3C/svg%3E';
+              img.style.opacity = '0.5';
+            };
+            img.onclick = () => {
+              try {
+                document.getElementById('lbimg').src = url;
+                document.getElementById('lb').classList.remove('gone');
+              } catch (e) {
+                console.error('Lightbox error:', e);
+              }
+            };
+            grid.appendChild(img);
+          } catch (e) {
+            console.warn('Thumbnail creation error:', e, 'for', t.name);
+          }
+        });
+      }
+
+      // ── Done!
+      progress(100, '✅ Hoàn tất!');
+      await tick();
+      await sleep(500);
+      document.getElementById('overlay').classList.add('gone');
+      document.getElementById('drop').classList.add('gone');
+      document.getElementById('hint').classList.remove('gone');
+    }
+
+    // ═════════════════════════════════════════════════
+    // Load .scene3d or .ply files
+    // ═════════════════════════════════════════════════
+    function loadFile(file) {
+      if (!file) {
+        showErr('No file selected');
+        return;
+      }
+
+      const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+      document.getElementById('fname').textContent = file.name + ` (${sizeMB} MB)`;
+      document.getElementById('err').classList.add('gone');
+      document.getElementById('overlay').classList.remove('gone');
+      document.getElementById('drop').classList.add('gone');
+      progress(2, `Reading ${file.name}...`);
+
+      const reader = new FileReader();
+
+      reader.onload = async (e) => {
+        try {
+          const buf = e.target.result;
+          if (!buf || buf.byteLength === 0) {
+            throw new Error('Empty file');
+          }
+
+          // Detect file type by extension or magic bytes
+          const isPLY = file.name.toLowerCase().endsWith('.ply');
+
+          progress(5, `Parsing ${isPLY ? 'PLY' : 'Scene3D'} file...`);
+          await tick();
+
+          if (isPLY) {
+            const parsed = parsePLY(buf);
+            await buildScene(parsed);
+          } else {
+            const parsed = await parseScene3D(buf);
+            await buildScene(parsed);
+          }
+        } catch (err) {
+          document.getElementById('overlay').classList.add('gone');
+          const errMsg = err.message || String(err);
+          console.error('[viewer] Load error:', err);
+          showErr(errMsg);
+        }
+      };
+
+      reader.onerror = () => {
+        document.getElementById('overlay').classList.add('gone');
+        showErr(`Failed to read file: ${file.name}`);
+        console.error('FileReader error:', reader.error);
+      };
+
+      reader.onabort = () => {
+        document.getElementById('overlay').classList.add('gone');
+        showErr('File read cancelled');
+      };
+
+      reader.readAsArrayBuffer(file);
+    }
+
+    // ═════════════════════════════════════════════════
+    // Basic PLY loader (for .ply files — reads PLY
+    // binary_little_endian with 62 float32 properties)
+    // ═════════════════════════════════════════════════
+    function parsePLY(buf) {
+      const bytes = new Uint8Array(buf);
+
+      // Find end of header
+      let headerEnd = 0;
+      const endHeader = new TextEncoder().encode('end_header\n');
+      for (let i = 0; i < Math.min(bytes.length, 10000); i++) {
+        let match = true;
+        for (let j = 0; j < endHeader.length; j++) {
+          if (bytes[i + j] !== endHeader[j]) { match = false; break; }
+        }
+        if (match) { headerEnd = i + endHeader.length; break; }
+      }
+      if (headerEnd === 0) throw new Error('PLY header not found');
+
+      const headerStr = new TextDecoder().decode(bytes.slice(0, headerEnd));
+      const vertexMatch = headerStr.match(/element vertex (\d+)/);
+      if (!vertexMatch) throw new Error('Cannot find vertex count in PLY');
+      const nTotal = parseInt(vertexMatch[1]);
+
+      // Count properties
+      const propCount = (headerStr.match(/property /g) || []).length;
+      const vertexBytes = propCount * 4; // float32 each
+
+      const step = Math.max(1, Math.ceil(nTotal / MAX_DISPLAY));
+      const nKeep = Math.ceil(nTotal / step);
+
+      const dv = new DataView(buf, headerEnd);
+      const positions = new Float32Array(nKeep * 3);
+      const colors = new Float32Array(nKeep * 3);
+      const scales = new Float32Array(nKeep);
+      const opacities = new Float32Array(nKeep);
+      let ki = 0;
+
+      const SH_C0 = 0.28209479177387814;
+
+      for (let i = 0; i < nTotal && ki < nKeep; i += step) {
+        const off = i * vertexBytes;
+        if (off + vertexBytes > dv.byteLength) break;
+
+        const x = dv.getFloat32(off + 0, true);
+        const y = dv.getFloat32(off + 4, true);
+        const z = dv.getFloat32(off + 8, true);
+        if (!isFinite(x) || !isFinite(y) || !isFinite(z)) continue;
+
+        positions[ki * 3] = x;
+        positions[ki * 3 + 1] = y;
+        positions[ki * 3 + 2] = z;
+
+        // SH DC at indices 6,7,8 → RGB
+        if (propCount >= 9) {
+          const dc0 = dv.getFloat32(off + 6 * 4, true);
+          const dc1 = dv.getFloat32(off + 7 * 4, true);
+          const dc2 = dv.getFloat32(off + 8 * 4, true);
+          colors[ki * 3] = Math.max(0, Math.min(1, SH_C0 * dc0 + 0.5));
+          colors[ki * 3 + 1] = Math.max(0, Math.min(1, SH_C0 * dc1 + 0.5));
+          colors[ki * 3 + 2] = Math.max(0, Math.min(1, SH_C0 * dc2 + 0.5));
+        } else {
+          colors[ki * 3] = colors[ki * 3 + 1] = colors[ki * 3 + 2] = 0.7;
+        }
+
+        // Scale at indices 55,56,57 (log-space) and Opacity at index 54 (raw)
+        if (propCount >= 58) {
+          const s0 = dv.getFloat32(off + 55 * 4, true);
+          const s1 = dv.getFloat32(off + 56 * 4, true);
+          const s2 = dv.getFloat32(off + 57 * 4, true);
+          scales[ki] = Math.exp((s0 + s1 + s2) / 3.0);
+
+          const rawOpacity = dv.getFloat32(off + 54 * 4, true);
+          opacities[ki] = 1.0 / (1.0 + Math.exp(-rawOpacity)); // sigmoid
+        } else {
+          scales[ki] = 0.01;
+          opacities[ki] = 1.0;
+        }
+        ki++;
+      }
+
+      return {
+        meta: { scene: {}, created: '' },
+        splats: {
+          positions: positions.slice(0, ki * 3),
+          colors: colors.slice(0, ki * 3),
+          scales: scales.slice(0, ki),
+          opacities: opacities.slice(0, ki),
+          nKeep: ki, nTotal, step
+        },
+        camData: null,
+        detections: [],
+        thumbs: []
+      };
+    }
+
+    // ═════════════════════════════════════════════════
+    // Auto-load from URL params or try default file
+    // ═════════════════════════════════════════════════
+    async function tryAutoLoad() {
+      const params = new URLSearchParams(window.location.search);
+      let fileName = params.get('file');
+
+      // If no URL param, try default file
+      if (!fileName) {
+        fileName = 'accident_scene.scene3d';
+      }
+
+      if (!fileName) return false;
+
+      try {
+        progress(3, `Loading: ${fileName}...`);
+        const resp = await fetch(fileName);
+
+        if (!resp.ok) {
+          // If default file not found, don't show error
+          if (fileName === 'accident_scene.scene3d' && resp.status === 404) {
+            console.log('Default scene3d file not found - user needs to drag/drop or open manually');
+            return false;
+          }
+          throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
+        }
+
+        const buf = await resp.arrayBuffer();
+        progress(10, `Loaded ${(buf.byteLength / 1024 / 1024).toFixed(1)} MB — parsing...`);
+        document.getElementById('fname').textContent = `${fileName} (${(buf.byteLength / 1024 / 1024).toFixed(1)} MB)`;
+
+        if (fileName.toLowerCase().endsWith('.ply')) {
+          const parsed = parsePLY(buf);
+          await buildScene(parsed);
+        } else {
+          const parsed = await parseScene3D(buf);
+          await buildScene(parsed);
+        }
+        return true;
+      } catch (e) {
+        // Only log errors for explicit requests
+        const isExplicit = new URLSearchParams(window.location.search).get('file');
+        if (isExplicit) {
+          console.error('Auto-load failed:', e.message);
+          document.getElementById('overlay').classList.add('gone');
+          showErr('Failed to load: ' + e.message);
+        }
+        return false;
+      }
+    }
+
+    // ═════════════════════════════════════════════════
+    // Event listeners
+    // ═════════════════════════════════════════════════
+    document.getElementById('file-input').addEventListener('change', e => {
+      const f = e.target.files[0];
+      if (f) loadFile(f);
+      e.target.value = '';
+    });
+
+    const dbox = document.getElementById('dbox');
+    document.addEventListener('dragover', e => { e.preventDefault(); dbox.classList.add('drag'); });
+    document.addEventListener('dragleave', () => dbox.classList.remove('drag'));
+    document.addEventListener('drop', e => {
+      e.preventDefault();
+      dbox.classList.remove('drag');
+      const f = e.dataTransfer.files[0];
+      if (f) loadFile(f);
+    });
+
+    // ── Display controls
+    function updateSplatSize() {
+      if (splatMaterial) {
+        splatMaterial.uniforms.uSizeMultiplier.value = 1000.0 * currentPointSize;
+      }
+    }
+
+    document.getElementById('ps').addEventListener('input', e => {
+      currentPointSize = parseFloat(e.target.value);
+      document.getElementById('pv').textContent = currentPointSize.toFixed(1);
+      updateSplatSize();
+    });
+    document.getElementById('op').addEventListener('input', e => {
+      const v = parseInt(e.target.value);
+      document.getElementById('ov').textContent = v;
+      // Opacity slider now scales all per-vertex opacities
+      if (pointsMesh && pointsMesh.material) {
+        pointsMesh.material.opacity = v / 100;
+      }
+    });
+    document.getElementById('rs').addEventListener('input', e => {
+      rotateSpeed = parseFloat(e.target.value);
+      document.getElementById('rv').textContent = rotateSpeed.toFixed(1);
+    });
+    document.getElementById('ar').addEventListener('change', e => { autoRotate = e.target.checked; });
+    document.getElementById('ax').addEventListener('change', e => { axesHelper.visible = e.target.checked; });
+    document.getElementById('gd').addEventListener('change', e => { gridHelper.visible = e.target.checked; });
+    document.getElementById('cv2').addEventListener('change', e => { if (camDots) camDots.visible = e.target.checked; });
+
+    // ── Keyboard shortcuts
+    window.addEventListener('keydown', e => {
+      if (e.target.tagName === 'INPUT') return;
+
+      if (e.key === 'r' || e.key === 'R') {
+        if (pointsMesh) {
+          const box = new THREE.Box3().setFromObject(pointsMesh);
+          const c = box.getCenter(new THREE.Vector3());
+          const s = box.getSize(new THREE.Vector3());
+          const md = Math.max(s.x, s.y, s.z);
+          controls.target.copy(c);
+          camera.position.set(c.x + md * 0.3, c.y + md * 0.4, c.z + md * 0.9);
+          camera.updateProjectionMatrix();
+          controls.update();
+        }
+      }
+      if (e.key === ' ') {
+        autoRotate = !autoRotate;
+        document.getElementById('ar').checked = autoRotate;
+        e.preventDefault();
+      }
+      if ((e.key === 'f' || e.key === 'F') && pointsMesh) {
+        const box = new THREE.Box3().setFromObject(pointsMesh);
+        const c = box.getCenter(new THREE.Vector3());
+        const s = box.getSize(new THREE.Vector3());
+        const md = Math.max(s.x, s.y, s.z);
+        controls.target.copy(c);
+        camera.position.set(c.x, c.y + md * 0.4, c.z + md * 0.9);
+        camera.updateProjectionMatrix();
+        controls.update();
+      }
+      if (e.key === 'g' || e.key === 'G') {
+        gridHelper.visible = !gridHelper.visible;
+        document.getElementById('gd').checked = gridHelper.visible;
+      }
+      // + / = key → increase point size
+      if (e.key === '+' || e.key === '=') {
+        currentPointSize = Math.min(12, currentPointSize + 0.2);
+        document.getElementById('ps').value = currentPointSize;
+        document.getElementById('pv').textContent = currentPointSize.toFixed(1);
+        updateSplatSize();
+      }
+      // - key → decrease point size
+      if (e.key === '-' || e.key === '_') {
+        currentPointSize = Math.max(0.3, currentPointSize - 0.2);
+        document.getElementById('ps').value = currentPointSize;
+        document.getElementById('pv').textContent = currentPointSize.toFixed(1);
+        updateSplatSize();
+      }
+    });
+
+    // ═════════════════════════════════════════════════
+    // Utility
+    // ═════════════════════════════════════════════════
+    function progress(pct, msg) {
+      document.getElementById('lbar').style.width = pct + '%';
+      if (msg) document.getElementById('ltxt').textContent = msg;
+    }
+    function showErr(msg) {
+      const el = document.getElementById('err');
+      el.textContent = '❌ ' + msg;
+      el.classList.remove('gone');
+    }
+    function tick() { return new Promise(r => setTimeout(r, 0)); }
+    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    // ═════════════════════════════════════════════════
+    // Boot
+    // ═════════════════════════════════════════════════
+    let loadRetries = 0;
+    const MAX_LOAD_RETRIES = 15; // 3 seconds max wait
+
+    function checkLibraries() {
+      if (typeof THREE !== 'undefined' && typeof THREE.OrbitControls !== 'undefined') {
+        return true;
+      }
+      return false;
+    }
+
+    function waitForLibraries() {
+      return new Promise((resolve) => {
+        const checkInterval = setInterval(() => {
+          loadRetries++;
+          if (checkLibraries()) {
+            clearInterval(checkInterval);
+            resolve(true);
+          } else if (loadRetries > MAX_LOAD_RETRIES) {
+            clearInterval(checkInterval);
+            document.getElementById('ltxt').textContent =
+              '❌ Failed to load 3D libraries!\n\n' +
+              'Make sure lib/three.min.js and lib/OrbitControls.js exist\n' +
+              'or check your internet connection for CDN fallback.';
+            document.getElementById('lbar').style.background = '#c00';
+            resolve(false);
+          }
+        }, 200);
+      });
+    }
+
+    window.addEventListener('load', async () => {
+      // Wait for libraries with retry
+      const libsReady = await waitForLibraries();
+      if (!libsReady) return;
+
+      try {
+        initThree();
+      } catch (e) {
+        document.getElementById('ltxt').textContent = '❌ Three.js initialization failed: ' + e.message;
+        document.getElementById('lbar').style.background = '#c00';
+        console.error('Init error:', e);
+        return;
+      }
+
+      // Try auto-load from URL params or default file
+      let loaded = false;
+
+      // First try URL params
+      const params = new URLSearchParams(window.location.search);
+      const fileName = params.get('file');
+      if (fileName) {
+        loaded = await tryAutoLoad();
+      }
+
+      // If not loaded from URL, try default accident_scene.scene3d
+      if (!loaded) {
+        loaded = await tryAutoLoad();  // Will try default if no params
+      }
+
+      if (!loaded) {
+        // Show drop zone with better instructions
+        setTimeout(() => {
+          document.getElementById('overlay').classList.add('gone');
+          document.getElementById('drop').classList.remove('gone');
+        }, 300);
+      }
+    });
+  </script>
+</body>
+
+</html>

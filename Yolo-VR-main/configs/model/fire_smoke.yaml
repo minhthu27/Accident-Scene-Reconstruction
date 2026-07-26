@@ -1,0 +1,10 @@
+name: "FireSmokeAccident"
+dir_name: "FireSmokeAccident"
+nc: 5
+classes: 
+  - accident
+  - vehicle
+  - pothole
+  - fire
+  - smoke
+description: "Fire/Smoke/Accident Detection - 25,425 images, 108,000+ bboxes"
